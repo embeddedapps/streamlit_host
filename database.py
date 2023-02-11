@@ -1,11 +1,11 @@
 import os
-import streamlit as st
+
 from deta import Deta
 from dotenv import load_dotenv
 
 # #load the environment variables
 load_dotenv(".env")
-DETA_KEY = st.secrets.credentials("KEY")
+DETA_KEY = os.getenv('DETA_KEY')
 #DETA_KEY= 'd061eczc_2bi3UJ9a98PvDdmtYaciksXwJbuqoXi8'
 #initialize with a product key
 deta = Deta(DETA_KEY)
