@@ -1,5 +1,8 @@
 import pandas as pd
+from pandas import DataFrame
 import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
 import streamlit as st
 import pickle
 from streamlit_option_menu import option_menu
@@ -11,11 +14,15 @@ from pathlib import Path
 import streamlit_authenticator as stauth
 import database as db
 
+from gspread_pandas import Spread,Client
+from google.oauth2 import service_account
+
+#from streamlit_extras.dataframe_explorer import dataframe_explorer
+
 st.set_page_config(page_title="Weather App", page_icon=":bar_chart:", layout="wide")
 
 #----------------------------User Login-------------------------#
 users = db.fetch_all_users()
-
 
 usernames = [user["key"] for user in users]
 names = [user["name"] for user in users]
@@ -45,8 +52,8 @@ if authentication_status == True:
     authenticator.logout("Logout","sidebar")
     with st.sidebar:
         selected = option_menu('Welcome To Our Model Prediction',
-        ['Home','Data','Weather Prediction','Conversion'],
-        icons = ['house','bar-chart','cloud-haze2','arrows-angle-contract'],  #through bootstrap
+        ['Home','Algorithm','Live Data','Prediction','Conversion'],
+        icons = ['house','bar-chart','activity','cloud-haze2','arrows-angle-contract'],  #through bootstrap
         default_index=0
         )
 
@@ -54,32 +61,80 @@ if authentication_status == True:
         #page title
         st.title('Secure Communication Based IoT Weather Forecasting')
         with st.expander('About this Project'):
-            st.subheader('Provides refined and targeted forecasts as it involve the integration of advanced technologies such as machine learning, big data analysis, and cloud computing, to produce more accurate and localized forecasts.')
+            st.subheader('Provides refined and targeted forecasts as it involve the integration of advanced technologies such as machine learning, data analysis, and cloud computing to produce more accurate and localized forecasts.')
         #st.image('')
     # if st.button('Click to continue',):
     # slider = st.slider('text', 0, 130, 25)
 
-    if(selected == 'Data'):
-        st.header('Data profile')
+    if(selected == 'Algorithm'):
+        st.header('Select Algorithm')
         uploaded_file = st.file_uploader("Choose a file")
 
         if uploaded_file is not None:
-            df = pd.read_csv(uploaded_file)
-            #slider completion
-            my_bar = st.progress(0)
-            for percent_complete in range(100):
-                time.sleep(0.01)
-                my_bar.progress(percent_complete + 1)
-            st.subheader('DataFrame')
-            st.write(df)
-            st.subheader('Descriptive Statistics')
-            st.write(df.describe())
+                df = pd.read_csv(uploaded_file)
+                #slider completion
+                my_bar = st.progress(0)
+                for percent_complete in range(100):
+                    time.sleep(0.01)
+                    my_bar.progress(percent_complete + 1)
+                st.subheader('DataFrame')
+                st.write(df)
+                st.subheader('Descriptive Statistics')
+                st.write(df.describe())
+                st.subheader('Data Info')
+                st.bar_chart(df)
     
     #      df = pd.read_csv('C:/Users/gkuma/Downloads/JupyterNotebook/Datasets/drug200.csv')
     #      profile = ProfileReport(df,title='Profile Report')
 
+    if(selected == 'Live Data'):
+        with st.spinner('Loading...'):
+            time.sleep(5)
+        st.success('Done!')
+        # Creating a Google Authentication connection object
+        scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
+        credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes = scope)
+        client = Client(scope=scope,creds=credentials)
+        spreadsheetname = "Data_From_Esp8266"
+        spread = Spread(spreadsheetname,client = client)
+        
+        # Check the connection
+        #st.write(spread.url)
+        sh = client.open(spreadsheetname)
+        worksheet_list = sh.worksheets()
 
-    if(selected == 'Weather Prediction'):
+        # Functions 
+        @st.cache_data()
+        def worksheet_names():
+            sheet_names = []
+            for sheet in worksheet_list:
+                sheet_names.append(sheet.title)
+            return sheet_names
+        
+        # Get the sheet as dataframe
+        def load_the_spreadsheet(spreadsheetname):
+            worksheet = sh.worksheet(spreadsheetname)
+            df = DataFrame(worksheet.get_all_records())
+            return df
+
+        # Check whether the sheets exists
+        what_sheets = worksheet_names()
+        # st.sidebar.write(what_sheets)
+        ws_choice = st.selectbox('Available worksheets',what_sheets)
+
+        # Load data from worksheets
+        df = load_the_spreadsheet(ws_choice)
+        st.write(df)
+
+        # filter_data = df(size=500,cols='dfc',col_names=("Date","Temperature","Humidity"),seed=1) 
+        # filtered_dataframe = dataframe_explorer(filter_data)
+        # st.filter_data(filtered_dataframe , use_container_width=True)
+        # col1, col2, col3 = st.columns(3)
+        # col1.metric("Temperature", "70 °F", "1.2 °F")
+        # col2.metric("Wind", "9 mph", "-8%")
+        # col3.metric("Humidity", "86%", "4%")
+    
+    if(selected == 'Prediction'):
         #page title
         st.title('Weather Prediction Using ML')
         
@@ -105,24 +160,24 @@ if authentication_status == True:
                 weather_result = 'It will rain'
         # else:
                 weather_result = 'No rainfall'
-        #st.snow()
+
     if(selected == 'Conversion'):
         st.header('Converting Celsius to Farenheit and Vice-versa')
         def fh_to_cel():
             st.session_state.cel = (st.session_state.fh/0.5556 - 32)
         def cel_to_fh():
             st.session_state.fh = (st.session_state.cel*1.8 + 32)
-        
+        # def reset_state():
+            
+            st.session_state.fh = 0
         col1, spacer, col2 = st.columns([2,1,2])
         with col1:
             fahrenheit = st.number_input("Fahrenheit:", key = "fh", on_change = fh_to_cel)
         with col2:
             celsius = st.number_input("Celsius:", key = "cel", on_change = cel_to_fh)
         st.button('Reset')
+            # reset_state
             
-
-
-        
  ###########################################################################footer ctrl+/
 hide_st_style = """
                 <style>
