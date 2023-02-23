@@ -1,12 +1,8 @@
 import pandas as pd
 from pandas import DataFrame
-import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.tree import DecisionTreeClassifier
 import streamlit as st
 import pickle
 from streamlit_option_menu import option_menu
-#from pandas_profiling import ProfileReport
 import time
 import pickle
 
@@ -16,8 +12,6 @@ import database as db
 
 from gspread_pandas import Spread,Client
 from google.oauth2 import service_account
-
-#from streamlit_extras.dataframe_explorer import dataframe_explorer
 
 st.set_page_config(page_title="Weather App", page_icon=":bar_chart:", layout="wide")
 
@@ -62,9 +56,6 @@ if authentication_status == True:
         st.title('Secure Communication Based IoT Weather Forecasting')
         with st.expander('About this Project'):
             st.subheader('Provides refined and targeted forecasts as it involve the integration of advanced technologies such as machine learning, data analysis, and cloud computing to produce more accurate and localized forecasts.')
-        #st.image('')
-    # if st.button('Click to continue',):
-    # slider = st.slider('text', 0, 130, 25)
 
     if(selected == 'Algorithm'):
         st.header('Select Algorithm')
@@ -97,9 +88,7 @@ if authentication_status == True:
         client = Client(scope=scope,creds=credentials)
         spreadsheetname = "Data_From_Esp8266"
         spread = Spread(spreadsheetname,client = client)
-        
-        # Check the connection
-        #st.write(spread.url)
+
         sh = client.open(spreadsheetname)
         worksheet_list = sh.worksheets()
 
@@ -119,21 +108,12 @@ if authentication_status == True:
 
         # Check whether the sheets exists
         what_sheets = worksheet_names()
-        # st.sidebar.write(what_sheets)
         ws_choice = st.selectbox('Available worksheets',what_sheets)
 
         # Load data from worksheets
         df = load_the_spreadsheet(ws_choice)
         st.write(df)
-
-        # filter_data = df(size=500,cols='dfc',col_names=("Date","Temperature","Humidity"),seed=1) 
-        # filtered_dataframe = dataframe_explorer(filter_data)
-        # st.filter_data(filtered_dataframe , use_container_width=True)
-        # col1, col2, col3 = st.columns(3)
-        # col1.metric("Temperature", "70 °F", "1.2 °F")
-        # col2.metric("Wind", "9 mph", "-8%")
-        # col3.metric("Humidity", "86%", "4%")
-    
+  
     if(selected == 'Prediction'):
         #page title
         st.title('Weather Prediction Using ML')
@@ -167,9 +147,6 @@ if authentication_status == True:
             st.session_state.cel = (st.session_state.fh/0.5556 - 32)
         def cel_to_fh():
             st.session_state.fh = (st.session_state.cel*1.8 + 32)
-        # def reset_state():
-            
-            st.session_state.fh = 0
         col1, spacer, col2 = st.columns([2,1,2])
         with col1:
             fahrenheit = st.number_input("Fahrenheit:", key = "fh", on_change = fh_to_cel)
